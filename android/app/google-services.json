@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "189776097790",
+    "firebase_url": "https://esp-firebase-web-test-default-rtdb.firebaseio.com",
+    "project_id": "esp-firebase-web-test",
+    "storage_bucket": "esp-firebase-web-test.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:189776097790:android:e870795a8e7e45b74710af",
+        "android_client_info": {
+          "package_name": "com.example.raonmoa_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "189776097790-q24f3ea1oq14b1ojieg4bdtincvdq012.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB9NctfQaBoe2wEfsBFo9I9T5HOLGqyYDU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "189776097790-q24f3ea1oq14b1ojieg4bdtincvdq012.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "189776097790-5mvriicavsqlrrilts3t44li1gv9l37c.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.raonmoaApp"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

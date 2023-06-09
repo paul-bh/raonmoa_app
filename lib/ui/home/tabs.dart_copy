@@ -1,0 +1,364 @@
+import 'dart:async';
+
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:raonmoa_app/BH_touchFX/bh_touchfx.dart';
+import 'package:raonmoa_app/logics/design.dart';
+import 'package:raonmoa_app/logics/homeSquareCard.dart';
+import 'package:raonmoa_app/ui/charts_pages/ph_chart.dart';
+import 'package:raonmoa_app/ui/charts_pages/tvoc_chart.dart';
+import 'package:raonmoa_app/ui/example.dart';
+import 'package:raonmoa_app/ui/home/tiles.dart';
+
+class MonitorTab extends StatefulWidget {
+  MonitorTab({Key? key}) : super(key: key);
+
+  @override
+  State<MonitorTab> createState() => _MonitorTabState();
+}
+
+class _MonitorTabState extends State<MonitorTab> {
+  num? data_temperature;
+  num? data_humidity;
+  num? data_waterTemp;
+  num? data_waterLevel;
+  num? data_ph;
+  num? data_co;
+  num? data_co2;
+  num? data_tvoc;
+  num? data_pm;
+  num? data_upm;
+  int? timestamp;
+
+  Query? lastOneDataRef;
+  String? myUserId;
+  StreamController? _streamController;
+
+  @override
+  void initState() {
+    // 5 sec delay
+    delay();
+    super.initState();
+  }
+
+  Future<void> delay() async {
+    myUserId = FirebaseAuth.instance.currentUser?.uid;
+
+    _streamController = StreamController(sync: true);
+    lastOneDataRef = FirebaseDatabase.instance.ref('UsersData/$myUserId/readings');
+    //await Future.delayed(Duration(seconds: 1));
+
+    lastOneDataRef!.onValue.listen((event) {
+      _streamController!.add(event.snapshot.children.last.children.last.value as Map<dynamic, dynamic>);
+    });
+  }
+
+  @override
+  void dispose() {
+    // _streamController!.close();
+    // super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder(
+        stream: _streamController!.stream,
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Center(
+              child: Text('Error: ${snapshot.error}'),
+            );
+          }
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Row(
+              children: [
+                Container(
+                  width: MediaQuery.of(context).size.width,
+                  margin: EdgeInsets.only(top: 100),
+                  child: Center(
+                    child: CupertinoActivityIndicator(),
+                  ),
+                ),
+              ],
+            );
+          }
+          print(snapshot.data);
+          var datas = snapshot.data;
+          data_temperature = datas['temperature'];
+          data_humidity = datas['humidity'];
+          data_waterTemp = datas['waterTemp'];
+          if (datas['waterLevel'] == "L") data_waterLevel = 10;
+          if (datas['waterLevel'] == "M") data_waterLevel = 50;
+          if (datas['waterLevel'] == "H") data_waterLevel = 90;
+
+          data_ph = datas['ph'];
+          data_co = datas['co'];
+          data_co2 = datas['co2'];
+          data_tvoc = datas['tvoc'];
+          data_pm = datas['pm'];
+          data_upm = datas['upm'];
+          timestamp = datas['timestamp'];
+
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              // show current timestamp
+              Text(DateTime.fromMillisecondsSinceEpoch(timestamp! * 1000).toString(), style: TextStyle(color: Colors.grey)),
+              Text(timestamp != null ? timestamp.toString() : "null", style: TextStyle(color: Colors.grey)),
+
+              SizedBox(height: 16.0),
+              Container(
+                padding: EdgeInsets.all(16.0),
+                margin: EdgeInsets.symmetric(horizontal: 12.0),
+                decoration: BoxDecoration(
+                  // round the corners and put raonmoa colored border
+                  borderRadius: BorderRadius.circular(16.0),
+                  border: Border.all(color: $raonmoaColor, width: 1.0),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // thermometer icon, with circle background
+                    Flexible(
+                      child: BHTouchFXInkWell(
+                        $clickedColor: Colors.transparent,
+                        $clickedRadius: 30.0,
+                        $clickedShrinkRatio: 0.05,
+                        $clickedCurveSizeIn: Curves.easeOutCubic,
+                        $clickedCurveSizeOut: Curves.easeOutCubic,
+                        $clickedDurationIn: Duration(milliseconds: 50),
+                        $clickedDurationOut: Duration(milliseconds: 200),
+                        child: Container(
+                          padding: EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+                          // half-transparent rounded background
+                          decoration: BoxDecoration(
+                            color: $raonmoaColor.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(30.0),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 50.0,
+                                height: 50.0,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.5),
+                                  borderRadius: BorderRadius.circular(50.0),
+                                ),
+                                child: Icon(Icons.thermostat_outlined, color: $raonmoaColor),
+                              ),
+                              Flexible(
+                                child: Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    crossAxisAlignment: CrossAxisAlignment.center,
+                                    children: [
+                                      Text("온도", style: topTextStyle_sub),
+                                      data_temperature != null
+                                          ? FittedBox(
+                                              child: Text(
+                                                  double.tryParse(data_temperature.toString())!.toStringAsFixed(1) + "°C",
+                                                  style: topTextStyle))
+                                          : Text("? °C", style: topTextStyle),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    verticalbar(
+                        width: 0.5,
+                        height: 50.0,
+                        color: Colors.grey.withOpacity(0.0),
+                        padding: EdgeInsets.symmetric(horizontal: 8.0)),
+                    // humidity icon, with circle background
+                    Flexible(
+                      child: BHTouchFXInkWell(
+                        $clickedColor: Colors.transparent,
+                        $clickedRadius: 30.0,
+                        $clickedShrinkRatio: 0.05,
+                        $clickedCurveSizeIn: Curves.easeOutCubic,
+                        $clickedCurveSizeOut: Curves.easeOutCubic,
+                        $clickedDurationIn: Duration(milliseconds: 50),
+                        $clickedDurationOut: Duration(milliseconds: 200),
+                        child: Container(
+                          padding: EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+                          // half-transparent rounded background
+                          decoration: BoxDecoration(
+                            color: $raonmoaColor.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(30.0),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 50.0,
+                                height: 50.0,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.5),
+                                  borderRadius: BorderRadius.circular(50.0),
+                                ),
+                                child: Icon(Icons.water_drop_outlined, color: $raonmoaColor),
+                              ),
+                              Flexible(
+                                child: Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    crossAxisAlignment: CrossAxisAlignment.center,
+                                    children: [
+                                      Text("습도", style: topTextStyle_sub),
+                                      data_humidity != null
+                                          ? FittedBox(
+                                              child: Text(double.tryParse(data_humidity.toString())!.toStringAsFixed(1) + "%",
+                                                  style: topTextStyle))
+                                          : Text("? %", style: topTextStyle),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(4.0),
+                child: Column(
+                  children: [
+                    // 1번째 줄
+                    Row(
+                      children: [
+                        Expanded(
+                            child: homeSquareCard(
+                                title: "수온 / 수위",
+                                child: WaterLevelTempTile(
+                                  temp: data_waterTemp != null
+                                      ? double.parse(double.tryParse(data_waterTemp.toString())!.toStringAsFixed(1))
+                                      : 0.0,
+                                  level: data_waterLevel != null
+                                      ? double.parse(double.tryParse(data_waterLevel.toString())!.toStringAsFixed(1))
+                                      : 0.0,
+                                ),
+                                isStacked: false)),
+                        Expanded(
+                          child: homeSquareCard(
+                            title: widgetData["pH"]["title"],
+                            child: PHGaugeTile(
+                              pH: double.parse(double.tryParse(data_ph.toString())!.toStringAsFixed(1)),
+                            ),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => PHChartPage(initialData: data_ph!.toDouble()),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    // 2번째 줄
+                    Row(
+                      children: [
+                        Expanded(
+                          child: homeSquareCard(
+                            child: COandCO2GaugeTile(
+                              co: double.tryParse(data_co.toString()) ?? 0.0,
+                              co2: double.tryParse(data_co2.toString()) ?? 0.0,
+                            ),
+                            title: "CO / CO2",
+                            ratio: 2,
+                          ),
+                        ),
+                      ],
+                    ),
+                    // 3번째 줄
+                    Row(
+                      children: [
+                        Expanded(
+                            child: homeSquareCard(
+                          title: widgetData["TVOC"]["title"],
+                          child: TVOCTile(
+                            tvoc: double.tryParse(data_tvoc.toString()) ?? 0.0,
+                          ),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => TVOCChartPage(initialData: data_tvoc!.toDouble()),
+                              ),
+                            );
+                          },
+                        )),
+                        Expanded(
+                            child: homeSquareCard(
+                                child: DustsTile(
+                                  pm: double.tryParse(data_pm.toString()) ?? 0.0,
+                                  upm: double.tryParse(data_upm.toString()) ?? 0.0,
+                                ),
+                                isStacked: true)),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        });
+  }
+}
+
+class ControlTab extends StatefulWidget {
+  ControlTab({Key? key}) : super(key: key);
+
+  @override
+  State<ControlTab> createState() => _ControlTabState();
+}
+
+class _ControlTabState extends State<ControlTab> {
+  bool? data_light_power = false;
+  bool? data_uv_power = false;
+  bool? data_pump_power = false;
+  Query? lastOneDataRef;
+  String? myUserId;
+
+  @override
+  void initState() {
+    super.initState();
+    myUserId = FirebaseAuth.instance.currentUser?.uid;
+    lastOneDataRef = FirebaseDatabase.instance.ref("UsersData/$myUserId/control");
+  }
+
+  @override
+  void dispose() {
+    // disconnect from firebase
+    lastOneDataRef!.ref.onDisconnect();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      shrinkWrap: true,
+      children: [
+        // show "-" if values are null
+        SizedBox(height: 16.0),
+        IotControllerTile(deviceName: "조명 LED", deviceStatus: "ON", deviceIcon: Icons.lightbulb_outline),
+        SizedBox(height: 16.0),
+        IotControllerTile(deviceName: "UV LED", deviceStatus: "ON", deviceIcon: Icons.wb_iridescent_outlined),
+        SizedBox(height: 16.0),
+        IotControllerTile(deviceName: "펌프", deviceStatus: "ON", deviceIcon: Icons.water_damage_outlined),
+      ],
+    );
+  }
+}
